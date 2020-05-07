@@ -35,11 +35,11 @@ object UpdateStateByKey {
       是int类型。中间状态存储的是单词累计出现的次数，如"ww"的累计状态 -> 4
       (3)返回值Option[S]，与累计的中间状态数据类型是一样的。
        */
-      .updateStateByKey((values:Seq[Int],state:Option[Int]) => {
-        val currentCount = values.sum  //获取本次单词出现的次数
-        val count = state.getOrElse(0)  //获取上一次累计结果 也就是中间状态
-        Some(currentCount + count)  //Some的意思是有可能有值，有可能没值None
-      })
+      .updateStateByKey((seq:Seq[Int],option:Option[Int]) => {
+      val currentCount = seq.sum  //获取本次单词出现的次数
+      val count = option.getOrElse(0)  //获取上一次累计结果 也就是中间状态
+      Some(currentCount + count)  //Some的意思是有可能有值，有可能没值None
+    })
 
 
     //打印RDD里面前十个元素

@@ -1,7 +1,9 @@
 package com.ww.sparkstreaming
 
 import org.apache.spark._
+import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming._
+import org.apache.spark.streaming.dstream.{MapWithStateDStream, ReceiverInputDStream}
 
 //按key累计计数MapWithState
 //与updateStateByKey方法相比，使用mapWithState方法能够得到6倍的低延迟同时维护的key状态数量要多10倍。
@@ -17,7 +19,7 @@ object MapWithState {
     // StreamingContext每隔Batch inverval(入参Seconds秒)时间间隔，blocks组成一个RDD。
     val ssc = new StreamingContext(conf, Seconds(5))
 
-    val lines = ssc.socketTextStream("127.0.0.1", 9999)
+    val lines: ReceiverInputDStream[String] = ssc.socketTextStream("127.0.0.1", 9999)
 
     //windows下运行使用
     System.setProperty("hadoop.home.dir", "D:/software/hadoop-3.0.0/bin/")
@@ -33,14 +35,16 @@ object MapWithState {
 
     /**
       * mapWithState的入参：累计函数mappingFunc，函数有3个入参：
-      * 入参1：word: String  代表的是key
-      * 入参2：one: Option[Int] 代表的是value
+      * 入参1：key: String  代表的是key
+      * 入参2：value: Option[Int] 代表的是value
       * 入参3：state: State[Int] 代表的是历史状态，也就是上次的累计结果
       */
-    val mappingFunc = (word: String, one: Option[Int], state: State[Int]) => {
+    val mappingFunc: (String, Option[Int], State[Int]) => (String, Int) = (key: String, value: Option[Int], state: State[Int]) => {
       //本次统计结果 + 历史累计统计结果
-      val sum = one.getOrElse(0) + state.getOption.getOrElse(0)
-      val output = (word, sum)
+      //      val s: State[Int] = state  //这里我就是看看是什么类型
+      //      val ss: Option[Int] = state.getOption()  //这里我就是看看是什么类型
+      val sum = value.getOrElse(0) + state.getOption.getOrElse(0)
+      val output: (String, Int) = (key, sum)
       //累计结果更新到state中
       state.update(sum)
       //返回最终累计结果
@@ -48,10 +52,10 @@ object MapWithState {
     }
 
     //MapWithState支持从某个初始RDD开始累计，而不是从0开始累计
-    val initialRDD = ssc.sparkContext.parallelize(List(("hello", 1), ("world", 1)))
+    val initialRDD: RDD[(String, Int)] = ssc.sparkContext.parallelize(List(("hello", 1), ("world", 1)))
 
     //mapWithState的入参：累计函数mappingFunc
-    val stateDstream = wordTuple.mapWithState(
+    val stateDstream: MapWithStateDStream[String, Int, Int, (String, Int)] = wordTuple.mapWithState(
       StateSpec.function(mappingFunc).initialState(initialRDD))
 
     //打印RDD里面前十个元素
