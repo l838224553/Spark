@@ -34,7 +34,7 @@ object KafkaIntegration {
     }
 
     //启动时，Driver检查checkpoint目录，如果没有数据则创建，如果有数据加载
-    val ssc = StreamingContext.getOrCreate(checkpointDir, functionToCreateContext _)
+    val ssc: StreamingContext = StreamingContext.getOrCreate(checkpointDir, functionToCreateContext _)
     ssc.checkpoint(checkpointDir)
 
     val kafkaParams = Map[String, Object](
@@ -79,9 +79,9 @@ Time: 1552912015000 ms
 
 
     //启动应用
-    streamingContext.start()
+    ssc.start()
     //等待任务结束
-    streamingContext.awaitTermination()
+    ssc.awaitTermination()
   }
 
 }
